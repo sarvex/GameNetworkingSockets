@@ -22,16 +22,14 @@ def read_travis_yml():
     return yaml.load(open('.travis.yml', 'r'), Loader=yaml.SafeLoader)
 
 def docker_arch(travis_arch):
-    if travis_arch == 'arm64':
-        return 'arm64v8'
-    return travis_arch
+    return 'arm64v8' if travis_arch == 'arm64' else travis_arch
 
 def image_name(image, tag, arch):
     # e.g. ubuntu:latest
-    image = '%s:%s' % (image, tag)
+    image = f'{image}:{tag}'
 
     if arch != 'amd64':
-        image_prefix = docker_arch(arch) + '/'
+        image_prefix = f'{docker_arch(arch)}/'
         os.environ['IMAGE_PREFIX'] = image_prefix
         return image_prefix + image
 
@@ -39,14 +37,14 @@ def image_name(image, tag, arch):
 
 def env_parse(env, arch):
     kv_str = env.split()
-    kv = { k: v for k, v in [ s.split('=') for s in kv_str ] }
+    kv = dict([ s.split('=') for s in kv_str ])
 
     # Ugly trick to prepare for running commands for this image
     try:
         del os.environ['IMAGE_PREFIX']
     except KeyError:
         pass
-    os.environ.update(kv)
+    os.environ |= kv
 
     if 'IMAGE' not in kv or 'IMAGE_TAG' not in kv:
         return None
@@ -82,14 +80,17 @@ def get_images(travis):
 
     # If we didn't find a match with our constraints, maybe the user wanted to
     # test a specific image not listed in .travis.yml.
-    if not match_found:
-        if 'any' not in [options['--image'], options['--image-tag'], options['--arch']]:
-            image = env_parse(
-                'IMAGE=%s IMAGE_TAG=%s' % (options['--image'], options['--image-tag']),
-                options['--arch']
-            )
-            if image is not None:
-                yield image
+    if not match_found and 'any' not in [
+        options['--image'],
+        options['--image-tag'],
+        options['--arch'],
+    ]:
+        image = env_parse(
+            f"IMAGE={options['--image']} IMAGE_TAG={options['--image-tag']}",
+            options['--arch'],
+        )
+        if image is not None:
+            yield image
 
 def docker_pull(image):
     subprocess.run(['docker', 'pull', image], check=True)

@@ -18,7 +18,7 @@ def remove_all_whitespace( s ):
 
 def get_pem_body( s ):
     m = re.match( r'-+.*BEGIN.*-\s+(.+)\s+.*END.*-+', s, re.DOTALL )
-    body = m.group(1)
+    body = m[1]
     return remove_all_whitespace( body )
 
 def run_cert_tool_with_ca_key( ca_key, args ):

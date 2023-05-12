@@ -21,10 +21,10 @@ class RunProcessInThread(threading.Thread):
         self.tag = tag
         self.cmdline = cmdline
         self.popen_kwargs = popen_kwargs
-        self.log = open( self.tag + ".log", "wt" )
+        self.log = open(f"{self.tag}.log", "wt")
 
     def WriteLn( self, ln ):
-        print( "%s> %s" % (self.tag, ln ) )
+        print(f"{self.tag}> {ln}")
         self.log.write( "%s\n" % ln )
         self.log.flush()
 
@@ -37,15 +37,14 @@ class RunProcessInThread(threading.Thread):
         if os.name == 'posix':
             LD_LIBRARY_PATH = env.get( 'LD_LIBRARY_PATH', '' )
             if LD_LIBRARY_PATH: LD_LIBRARY_PATH += ';'
-            env['LD_LIBRARY_PATH'] = LD_LIBRARY_PATH + "."
-            self.WriteLn( "LD_LIBRARY_PATH = '%s'" % env['LD_LIBRARY_PATH'])
+            env['LD_LIBRARY_PATH'] = f"{LD_LIBRARY_PATH}."
+            self.WriteLn(f"LD_LIBRARY_PATH = '{env['LD_LIBRARY_PATH']}'")
 
         self.WriteLn( "Executing: " + ' '.join( self.cmdline ) )
         self.process = subprocess.Popen( self.cmdline, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, **self.popen_kwargs )
         self.process.stdin.close()
         while True:
-            sOutput = self.process.stdout.readline()
-            if sOutput:
+            if sOutput := self.process.stdout.readline():
                 sOutput = str(sOutput, 'utf-8', 'ignore')
                 self.WriteLn( sOutput.rstrip() )
             elif self.process.poll() is not None:
@@ -78,10 +77,13 @@ def StartProcessInThread( tag, cmdline, **popen_kwargs ):
 def StartClientInThread( role, local, remote ):
     cmdline = [
         "./test_p2p",
-        "--" + role,
-        "--identity-local", "str:"+local,
-        "--identity-remote", "str:"+remote,
-        "--signaling-server", "localhost:10000"
+        f"--{role}",
+        "--identity-local",
+        f"str:{local}",
+        "--identity-remote",
+        f"str:{remote}",
+        "--signaling-server",
+        "localhost:10000",
     ]
     return StartProcessInThread( local, cmdline );
 
